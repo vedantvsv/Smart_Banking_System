@@ -1,0 +1,11 @@
+# Data files
+data/
+
+# Model files (optional - if you don't want to push large .pkl files)
+models/
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Database
+db/
