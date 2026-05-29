@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SMART Banking System — AI-powered Loan Approval and Fraud Detection" />
+    <title>SMART Banking System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+    <!-- ═══════════════  NAVBAR  ═══════════════ -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/" class="navbar-brand">
+                <span class="brand-icon">&#9670;</span>
+                <span class="brand-text">SMART <em>Banking</em></span>
+            </a>
+            <div class="navbar-links">
+                <a href="/" class="nav-link active">Home</a>
+                <a href="/loan" class="nav-link">Loan Approval</a>
+                <a href="/fraud" class="nav-link">Fraud Detection</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════════════  HERO  ═══════════════ -->
+    <section class="hero">
+        <div class="hero-inner">
+            <div class="hero-badge">Powered by Machine Learning</div>
+            <h1 class="hero-title">
+                Smarter Banking<br>
+                <span class="highlight">Decisions in Seconds</span>
+            </h1>
+            <p class="hero-subtitle">
+                Harness the power of AI to evaluate loan applications and detect fraudulent transactions
+                in real-time with industry-leading accuracy.
+            </p>
+            <div class="hero-actions">
+                <a href="/loan" class="btn btn-primary">&#128176; Loan Approval</a>
+                <a href="/fraud" class="btn btn-secondary">&#128737; Fraud Detection</a>
+            </div>
+            <div class="hero-stats">
+                <div class="stat-card">
+                    <span class="stat-number">98.75%</span>
+                    <span class="stat-label">Loan Accuracy</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">99.57%</span>
+                    <span class="stat-label">Fraud Recall</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number">&lt;1s</span>
+                    <span class="stat-label">Response Time</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════  FEATURES  ═══════════════ -->
+    <section class="features">
+        <div class="features-inner">
+            <h2 class="section-title">Why SMART Banking?</h2>
+            <div class="features-grid">
+
+                <div class="feature-card">
+                    <div class="feature-icon">&#128176;</div>
+                    <h3>Loan Approval</h3>
+                    <p>
+                        Our Random Forest model evaluates credit applications with a 98.75% accuracy rate,
+                        factoring in income, credit score, employment history, and debt ratio in real time.
+                    </p>
+                    <a href="/loan" class="feature-link">Try it &#8594;</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">&#128737;</div>
+                    <h3>Fraud Detection</h3>
+                    <p>
+                        An XGBoost pipeline reaches 99.57% fraud recall by analyzing transaction patterns,
+                        balance anomalies, and risk indicators before approval.
+                    </p>
+                    <a href="/fraud" class="feature-link">Try it &#8594;</a>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">&#9889;</div>
+                    <h3>Instant Results</h3>
+                    <p>
+                        No waiting queues. Every prediction is generated in under a second using
+                        pre-trained models so your team can act immediately.
+                    </p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════════  FOOTER  ═══════════════ -->
+    <footer class="footer">
+        <p>&copy; 2026 SMART Banking System &mdash; Built with Flask &amp; Machine Learning</p>
+    </footer>
+
+</body>
+</html>

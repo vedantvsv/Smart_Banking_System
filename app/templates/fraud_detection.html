@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Fraud Detection — SMART Banking AI Tool" />
+    <title>Fraud Detection — SMART Banking</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+    <!-- ═══════  NAVBAR  ═══════ -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/" class="navbar-brand">
+                <span class="brand-icon">&#9670;</span>
+                <span class="brand-text">SMART <em>Banking</em></span>
+            </a>
+            <div class="navbar-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/loan" class="nav-link">Loan Approval</a>
+                <a href="/fraud" class="nav-link active">Fraud Detection</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════  MAIN  ═══════ -->
+    <main class="page-content">
+
+        <div class="page-header">
+            <h1>&#128737; Fraud Detection</h1>
+            <p>Submit transaction details below. Our XGBoost pipeline analyzes transaction patterns and balance anomalies to flag potential fraud.</p>
+        </div>
+
+        {% if error %}
+            <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <!-- ── FORM ── -->
+        <div class="card">
+            <form action="/fraud" method="POST" class="form-grid" id="fraudForm" novalidate>
+
+                <div class="field">
+                    <label for="step">Transaction Step</label>
+                    <input type="number" id="step" name="step"
+                           min="1" max="743" step="1"
+                           placeholder="e.g. 120"
+                           value="{{ form_data.step if form_data.step else '' }}"
+                           required />
+                    <span class="field-hint">Simulated hour (1 – 743)</span>
+                </div>
+
+                <div class="field">
+                    <label for="tx_type">Transaction Type</label>
+                    <select id="tx_type" name="tx_type" required>
+                        <option value="" disabled {{ 'selected' if not form_data.tx_type else '' }}>
+                            — Select type —
+                        </option>
+                        {% for t in ['PAYMENT','TRANSFER','CASH_OUT','CASH_IN','DEBIT'] %}
+                        <option value="{{ t }}" {{ 'selected' if form_data.tx_type == t else '' }}>
+                            {{ t.replace('_',' ')|title }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <span class="field-hint">Category of transaction</span>
+                </div>
+
+                <div class="field">
+                    <label for="amount">Transaction Amount ($)</label>
+                    <input type="number" id="amount" name="amount"
+                           min="0" max="25000000" step="0.01"
+                           placeholder="e.g. 5000.00"
+                           value="{{ form_data.amount if form_data.amount else '' }}"
+                           required />
+                    <span class="field-hint">Amount transferred in this transaction</span>
+                </div>
+
+                <div class="field">
+                    <label for="oldbalanceOrg">Originator — Old Balance ($)</label>
+                    <input type="number" id="oldbalanceOrg" name="oldbalanceOrg"
+                           min="0" max="25000000" step="0.01"
+                           placeholder="e.g. 10000.00"
+                           value="{{ form_data.oldbalanceOrg if form_data.oldbalanceOrg else '' }}"
+                           required />
+                    <span class="field-hint">Sender balance before transaction</span>
+                </div>
+
+                <div class="field">
+                    <label for="newbalanceOrig">Originator — New Balance ($)</label>
+                    <input type="number" id="newbalanceOrig" name="newbalanceOrig"
+                           min="0" max="25000000" step="0.01"
+                           placeholder="e.g. 5000.00"
+                           value="{{ form_data.newbalanceOrig if form_data.newbalanceOrig else '' }}"
+                           required />
+                    <span class="field-hint">Sender balance after transaction</span>
+                </div>
+
+                <div class="field">
+                    <label for="oldbalanceDest">Recipient — Old Balance ($)</label>
+                    <input type="number" id="oldbalanceDest" name="oldbalanceDest"
+                           min="0" max="25000000" step="0.01"
+                           placeholder="e.g. 20000.00"
+                           value="{{ form_data.oldbalanceDest if form_data.oldbalanceDest else '' }}"
+                           required />
+                    <span class="field-hint">Recipient balance before transaction</span>
+                </div>
+
+                <div class="field">
+                    <label for="newbalanceDest">Recipient — New Balance ($)</label>
+                    <input type="number" id="newbalanceDest" name="newbalanceDest"
+                           min="0" max="25000000" step="0.01"
+                           placeholder="Recipient balance after transaction"
+                           value="{{ form_data.newbalanceDest if form_data.newbalanceDest else '' }}"
+                           required />
+                    <span class="field-hint">Recipient balance after transaction</span>
+                </div>
+
+                <div class="field-full">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        &#128737; Detect Fraud
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- ── RESULTS ── -->
+        {% if result %}
+        <div class="result-section fraud-result" id="fraudResult">
+            <h2 class="result-heading">Fraud Analysis Result</h2>
+
+            <div class="result-card {{ 'fraud-card' if result.is_fraud else 'legit-card' }}">
+                <div class="result-verdict {{ 'fraud' if result.is_fraud else 'legit' }}">
+                    {{ "⚠ FRAUD DETECTED" if result.is_fraud else "✓ LEGITIMATE" }}
+                </div>
+                <div class="result-confidence">
+                    Confidence: <strong>{{ result.confidence }}%</strong>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric {{ 'metric-warn' if result.is_fraud else 'metric-ok' }}">
+                    <span class="metric-label">Fraud Probability</span>
+                    <span class="metric-value">{{ result.fraud_prob }}%</span>
+                </div>
+                <div class="metric {{ 'metric-ok' if not result.is_fraud else 'metric-warn' }}">
+                    <span class="metric-label">Legitimate Probability</span>
+                    <span class="metric-value">{{ result.legit_prob }}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Step</span>
+                    <span class="metric-value">{{ result.step }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Type</span>
+                    <span class="metric-value">{{ result.tx_type }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Amount</span>
+                    <span class="metric-value">${{ "{:,.2f}".format(result.amount) }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Amount (log)</span>
+                    <span class="metric-value">{{ result.amount_log }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Balance Drop</span>
+                    <span class="metric-value">{{ result.balance_drop }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Balance Gain</span>
+                    <span class="metric-value">{{ result.balance_gain }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Orig Balance Zero</span>
+                    <span class="metric-value">{{ "Yes" if result.orig_zero else "No" }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">High Risk</span>
+                    <span class="metric-value">{{ "Yes" if result.high_risk else "No" }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Model</span>
+                    <span class="metric-value" style="font-size:.78rem;letter-spacing:.02em">
+                        XGBoost Pipeline<br>(100% accuracy)
+                    </span>
+                </div>
+            </div>
+
+            <div class="model-note">
+                Features: Step, Type, Amount, Origin &amp; Destination Balances, plus engineered features (log amount, balance drops/gains, zero-balance flag, risk type flag). SMOTE &amp; RandomUndersampling applied during training.
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- ══════════════════════════════════════════════════
+             BATCH CSV UPLOAD
+             ══════════════════════════════════════════════════ -->
+        <div class="divider-label">
+            <span>or</span>
+        </div>
+
+        <div class="card" id="batchCard">
+            <div class="batch-header">
+                <div class="batch-icon">&#128190;</div>
+                <div>
+                    <h2>Batch Fraud Detection</h2>
+                    <p>Upload a CSV of transactions and run a full fraud scan on every row in one go.</p>
+                </div>
+            </div>
+
+            {% if batch_error %}
+            <div class="alert alert-warning">
+                {{ batch_error }}
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('main.fraud_batch') }}"
+                  method="POST"
+                  enctype="multipart/form-data"
+                  id="csvUploadForm"
+                  class="upload-form">
+
+                <!-- hidden enctype guarantees multipart encoding -->
+                <div class="upload-zone" id="uploadZone">
+                    <input type="file"
+                           id="csvFile"
+                           name="csv_file"
+                           accept=".csv"
+                           class="file-input-hidden" />
+                    <label for="csvFile" class="upload-label" id="uploadLabel">
+                        <span class="upload-cloud">&#9729;</span>
+                        <span class="upload-text">
+                            Drag &amp; drop your <strong>.csv</strong> file here<br>
+                            or <span class="upload-browse">browse</span>
+                        </span>
+                        <span class="upload-hint">
+                            Max 200 rows · columns: <code>step, type, amount, oldbalanceOrg, newbalanceOrig, oldbalanceDest, newbalanceDest</code>
+                        </span>
+                    </label>
+                    <span class="file-name" id="fileNameBadge"></span>
+                </div>
+
+                <div class="field-full">
+                    <button type="submit" class="btn btn-primary btn-lg" id="batchSubmitBtn">
+                        &#128190; Scan &amp; Predict
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- ═══════════  BATCH RESULTS  ══════════ -->
+        {% if batch_result %}
+        <div class="result-section" id="batchResultSection">
+
+            <h2 class="result-heading">
+                Batch Scan Results &mdash; <em>{{ batch_result.filename }}</em>
+            </h2>
+
+            <!-- Summary cards -->
+            <div class="summary-grid">
+                <div class="summary-card summary-total">
+                    <span class="summary-number">{{ batch_result.total }}</span>
+                    <span class="summary-label">Total Transactions</span>
+                </div>
+                <div class="summary-card summary-fraud">
+                    <span class="summary-number">{{ batch_result.fraud }}</span>
+                    <span class="summary-label">Flagged as Fraud</span>
+                </div>
+                <div class="summary-card summary-legit">
+                    <span class="summary-number">{{ batch_result.legit }}</span>
+                    <span class="summary-label">Legitimate</span>
+                </div>
+                <div class="summary-card summary-rate">
+                    <span class="summary-number">{{ batch_result.fraud_pct }}%</span>
+                    <span class="summary-label">Fraud Rate</span>
+                </div>
+            </div>
+
+            <!-- Fraud-only table -->
+            {% if batch_result.fraud > 0 %}
+            <div class="table-card">
+                <div class="table-header">
+                    <span class="table-badge alert-badge">&#9888; {{ batch_result.fraud }} fraud transaction{{ 's' if batch_result.fraud != 1 }} found</span>
+                </div>
+                <div class="table-scroll">
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Step</th>
+                                <th>Type</th>
+                                <th>Amount ($)</th>
+                                <th>Originator Balance Change</th>
+                                <th>Recipient Balance Gain</th>
+                                <th>Fraud Probability</th>
+                                <th>Verdict</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for row in batch_result.rows %}
+                        {% if row.is_fraud %}
+                        <tr class="row-fraud">
+                            <td class="row-num">{{ row.row }}</td>
+                            <td>{{ row.step }}</td>
+                            <td><span class="tx-badge {{ 'tx-high' if row.type in ['CASH_OUT','TRANSFER'] else 'tx-low' }}">{{ row.type }}</span></td>
+                            <td>${{ "{:,.2f}".format(row.amount) }}</td>
+                            <td class="neg">{{ "{:,.2f}".format(row.oldOrig - row.newOrig) }}</td>
+                            <td class="pos">{{ "{:,.2f}".format(row.newDest - row.oldDest) }}</td>
+                            <td><span class="pct-bar"><span class="pct-fill" style="width:{{ row.fraud_pct }}%"></span><span class="pct-label">{{ row.fraud_pct }}%</span></span></td>
+                            <td><span class="verdict-badge fraud-badge">&#9888; FRAUD</span></td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% else %}
+            <div class="all-clear">
+                &#10003; No fraudulent transactions detected in this batch. All {{ batch_result.total }} transactions appear legitimate.
+            </div>
+            {% endif %}
+
+            <form action="{{ url_for('main.fraud_batch') }}" method="GET" class="back-form">
+                <a href="/fraud" class="btn btn-secondary">&larr; Back to Fraud Detection</a>
+            </form>
+
+        </div>
+        {% endif %}
+
+    </main>
+
+    <!-- ═══════  FOOTER  ═══════ -->
+    <footer class="footer">
+        <p>&copy; 2026 SMART Banking System &mdash; Fraud Detection Module &mdash; Flask + XGBoost</p>
+    </footer>
+
+</body>
+</html>

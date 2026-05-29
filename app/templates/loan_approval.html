@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Loan Approval Prediction — SMART Banking AI Tool" />
+    <title>Loan Approval — SMART Banking</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+
+    <!-- ═══════  NAVBAR  ═══════ -->
+    <nav class="navbar">
+        <div class="navbar-inner">
+            <a href="/" class="navbar-brand">
+                <span class="brand-icon">&#9670;</span>
+                <span class="brand-text">SMART <em>Banking</em></span>
+            </a>
+            <div class="navbar-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/loan" class="nav-link active">Loan Approval</a>
+                <a href="/fraud" class="nav-link">Fraud Detection</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ═══════  MAIN  ═══════ -->
+    <main class="page-content">
+
+        <div class="page-header">
+            <h1>&#128176; Loan Approval</h1>
+            <p>Enter applicant details below. Our Random Forest model calculates a loan‑approval prediction alongside key decision metrics.</p>
+        </div>
+
+        {% if error %}
+            <div class="alert alert-error">{{ error }}</div>
+        {% endif %}
+
+        <!-- ── FORM ── -->
+        <div class="card">
+            <form action="/loan" method="POST" id="loanForm" class="form-grid" novalidate>
+
+                <div class="field">
+                    <label for="income">Annual Income ($)</label>
+                    <input type="number" id="income" name="income"
+                           min="30000" max="200000" step="500"
+                           placeholder="e.g. 75000"
+                           value="{{ form_data.income if form_data.income else '' }}"
+                           required />
+                    <span class="field-hint">Gross annual income (30,000 – 200,000)</span>
+                </div>
+
+                <div class="field">
+                    <label for="credit_score">Credit Score</label>
+                    <input type="number" id="credit_score" name="credit_score"
+                           min="300" max="850"
+                           placeholder="e.g. 720"
+                           value="{{ form_data.credit_score if form_data.credit_score else '' }}"
+                           required />
+                    <span class="field-hint">FICO score range: 300 – 850</span>
+                </div>
+
+                <div class="field">
+                    <label for="loan_amount">Loan Amount ($)</label>
+                    <input type="number" id="loan_amount" name="loan_amount"
+                           min="1000" max="100000" step="500"
+                           placeholder="e.g. 25000"
+                           value="{{ form_data.loan_amount if form_data.loan_amount else '' }}"
+                           required />
+                    <span class="field-hint">Total loan principal requested</span>
+                </div>
+
+                <div class="field">
+                    <label for="years_employed">Years Employed</label>
+                    <input type="number" id="years_employed" name="years_employed"
+                           min="0" max="40" step="1"
+                           placeholder="e.g. 5"
+                           value="{{ form_data.years_employed if form_data.years_employed else '' }}"
+                           required />
+                    <span class="field-hint">Years at current or most recent employment</span>
+                </div>
+
+                <div class="field-full">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        &#128269; Analyze Application
+                    </button>
+                </div>
+
+            </form>
+        </div>
+
+        <!-- ── RESULTS ── -->
+        {% if result %}
+        <div class="result-section" id="resultSection">
+            <h2 class="result-heading">Prediction Result</h2>
+
+            <div class="result-card {{ 'approved-card' if result.approved else 'rejected-card' }}">
+                <div class="result-verdict {{ 'approved' if result.approved else 'rejected' }}">
+                    {{ "APPROVED" if result.approved else "REJECTED" }}
+                </div>
+                <div class="result-confidence">
+                    Confidence: <strong>{{ result.confidence }}%</strong>
+                </div>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric {{ 'metric-ok' if result.approved else 'metric-warn' }}">
+                    <span class="metric-label">Approval Probability</span>
+                    <span class="metric-value">{{ result.approval_prob }}%</span>
+                </div>
+                <div class="metric {{ 'metric-ok' if not result.approved else 'metric-warn' }}">
+                    <span class="metric-label">Rejection Probability</span>
+                    <span class="metric-value">{{ result.rejection_prob }}%</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Income</span>
+                    <span class="metric-value">${{ "{:,.0f}".format(result.income) }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Credit Score</span>
+                    <span class="metric-value">{{ result.credit_score }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Loan Amount</span>
+                    <span class="metric-value">${{ "{:,.0f}".format(result.loan_amount) }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Loan / Income Ratio</span>
+                    <span class="metric-value">{{ result.ratio }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Years Employed</span>
+                    <span class="metric-value">{{ result.years_employed }} yr{{ 's' if result.years_employed != 1 }}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Model</span>
+                    <span class="metric-value" style="font-size:.78rem;letter-spacing:.02em">
+                        Random Forest<br>(98.75% accuracy)
+                    </span>
+                </div>
+            </div>
+
+            <div class="model-note">
+                Model features used: Annual Income, Credit Score, Loan Amount, Years Employed, Loan-to-Income Ratio.
+            </div>
+        </div>
+        {% endif %}
+
+    </main>
+
+    <!-- ═══════  FOOTER  ═══════ -->
+    <footer class="footer">
+        <p>&copy; 2026 SMART Banking System &mdash; Loan Approval Module &mdash; Flask + Scikit-Learn</p>
+    </footer>
+
+</body>
+</html>
